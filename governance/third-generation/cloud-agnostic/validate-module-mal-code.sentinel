@@ -1,26 +1,38 @@
 # This policy uses the tfconfig/v2 and tfplan/v2 import to check that the MAL code input
-# for a module matches the MAL code values set in a workspace variable
+# for a module matches the MAL code values set in a workspace variable and that the value
+# is a substring of the workspace name
 
 import "tfconfig-functions" as config
 import "tfplan/v2" as plan
+import "tfrun" as run
+
 
 # Get all modules
 allModuleCalls = config.find_all_module_calls()
 
 malCodes = plan.variables.mal_codes.value
+workspaceName = run.workspace.name
 
-violatingModuleCalls = filter allModuleCalls as address, mc {
+wsVarMismatch = filter allModuleCalls as address, mc {
     malCodes not contains config.evaluate_attribute(mc, "config.mal_code")
 }
 
-# Print any violations
+wsNameMismatch = filter allModuleCalls as address, mc {
+    workspaceName not contains config.evaluate_attribute(mc, "config.mal_code")
+}
 
-for violatingModuleCalls as address, mc {
+# Print any violations
+for wsVarMismatch as address, mc {
     mal_code = config.evaluate_attribute(mc, "config.mal_code")
     print("Module", address, "mal_code", mal_code, "does not match possible MAL code values", malCodes)
 }
 
+for wsNameMismatch as address, mc {
+    mal_code = config.evaluate_attribute(mc, "config.mal_code")
+    print("Module", address, "mal_code", mal_code, "is not a substring of the workspace name", workspaceName)
+}
+
 # Main rule
 main = rule {
-    length(violatingModuleCalls) is 0
+    length(wsVarMismatch) is 0 and length(wsNameMismatch) is 0
 }

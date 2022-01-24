@@ -18,6 +18,12 @@ mock "tfplan/v2" {
   }
 }
 
+mock "tfrun" {
+  module {
+    source = "mock-tfrun.sentinel"
+  }
+}
+
 test {
   rules = {
     main = false
