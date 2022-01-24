@@ -1,0 +1,26 @@
+# This policy uses the tfconfig/v2 and tfplan/v2 import to check that the MAL code input
+# for a module matches the MAL code values set in a workspace variable
+
+import "tfconfig-functions" as config
+import "tfplan/v2" as plan
+
+# Get all modules
+allModuleCalls = config.find_all_module_calls()
+
+malCodes = plan.variables.mal_codes.value
+
+violatingModuleCalls = filter allModuleCalls as address, mc {
+    malCodes not contains config.evaluate_attribute(mc, "config.mal_code")
+}
+
+# Print any violations
+
+for violatingModuleCalls as address, mc {
+    mal_code = config.evaluate_attribute(mc, "config.mal_code")
+    print("Module", address, "mal_code", mal_code, "does not match possible MAL code values", malCodes)
+}
+
+# Main rule
+main = rule {
+    length(violatingModuleCalls) is 0
+}
